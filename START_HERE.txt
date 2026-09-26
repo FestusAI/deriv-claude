@@ -1,0 +1,23 @@
+START HERE — FREE HOSTING VERSION
+
+NO DOMAIN PURCHASE IS REQUIRED.
+
+YOUR OAUTH APP ID IS ALREADY INCLUDED:
+34vvcam28Ydxf3IHNHKJI
+
+1. Upload this whole project to GitHub.
+2. Open Render and create a new Web Service from that repository.
+3. Select the Free plan.
+4. Build command: npm install
+5. Start command: npm start
+6. Deploy.
+7. Wait for Render to show your free URL, for example:
+   https://deriv-higher-lower-hedge.onrender.com
+8. Go back to Deriv API -> Apps -> your Web-based OAuth app.
+9. Change the redirect URL to:
+   https://YOUR-RENDER-URL.onrender.com/callback
+10. Save the Deriv app.
+11. Open your Render URL and tap Connect with Deriv.
+12. TEST ON DEMO FIRST.
+
+Do not use your PAT token in this public version.

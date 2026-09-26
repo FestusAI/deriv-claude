@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: deriv-higher-lower-hedge
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DERIV_CLIENT_ID
+        value: 34vvcam28Ydxf3IHNHKJI
+      - key: NODE_ENV
+        value: production
