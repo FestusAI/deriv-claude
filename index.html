@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>DollarPrinting Hedge</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#16181d;background:#f4f5f7}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#f4f5f7}
+.app{max-width:760px;margin:auto;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:10;background:#111318;color:#fff;padding:16px 18px;box-shadow:0 1px 8px rgba(0,0,0,.18)}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-size:20px;font-weight:800}.small{font-size:12px;opacity:.72;margin-top:3px}
+.install{display:none;background:#fff;color:#111318;padding:8px 11px;border-radius:9px;border:0;font-weight:800}
+.content{padding:14px}.card{background:#fff;border:1px solid #e1e4e9;border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+h3{margin:0 0 12px;font-size:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:560px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:11px;font-weight:800;color:#5b616b;margin:0 0 5px}
+input,select,button,a.btn{font:inherit}input,select{width:100%;padding:11px 12px;border:1px solid #cfd3da;border-radius:10px;background:#fff;min-height:44px}
+select[size]{padding:6px;min-height:auto;overflow-y:auto}select[size] option{padding:8px 9px;border-radius:7px}select[size] option:checked{background:#ff444f;color:#fff}
+input[type=checkbox]{width:auto;min-height:auto}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+button,a.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:800;cursor:pointer;min-height:44px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.primary{background:#ff444f;color:#fff}.secondary{background:#e9ebef;color:#222}.danger{background:#111318;color:#fff}button:disabled{opacity:.45}
+.status{font-weight:800;font-size:13px}.ok{color:#157347}.bad{color:#b42318}.warn{color:#9a6700}
+.check{display:flex;gap:8px;align-items:flex-start}.check label{font-size:12px;font-weight:500;line-height:1.4;margin:0;color:#5c626d}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#f6f7f9;border-radius:10px;padding:10px;font-size:12px;color:#5c626d}
+.metric b{display:block;font-size:18px;color:#111318;margin-top:3px;word-break:break-all}
+.log{height:220px;overflow:auto;white-space:pre-wrap;background:#111318;color:#e7e9ed;border-radius:10px;padding:11px;font-size:11px;line-height:1.45}
+.note{font-size:12px;color:#5f6672;line-height:1.5;margin:11px 0 0}
+.banner{display:none;background:#fff3cd;border:1px solid #ffe69c;color:#664d03;padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:12px}
+.sep{height:1px;background:#eceef1;margin:13px 0}.loginHero{text-align:center;padding:12px 4px}.loginHero h2{margin:0 0 8px}.loginHero p{color:#5f6672;font-size:13px;line-height:1.5;margin:0 auto 15px;max-width:520px}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+  <div class="toprow">
+    <div><div class="brand">DollarPrinting Hedge</div><div class="small">Higher + Lower paired contracts</div></div>
+    <button id="installBtn" class="install">Install App</button>
+  </div>
+</header>
+
+<main class="content">
+  <div id="offlineBanner" class="banner">You are offline. Trading requires internet.</div>
+  <div id="authError" class="banner"></div>
+
+  <section class="card" id="loginCard">
+    <div class="loginHero">
+      <h2>Connect your Deriv account</h2>
+      <p>Sign in directly with Deriv. This app never asks for your Deriv password or PAT token.</p>
+      <div class="row" style="justify-content:center">
+        <a class="btn primary" href="/auth/login">Connect with Deriv</a>
+        <a class="btn secondary" href="/auth/signup">Create Deriv account</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="accountCard" style="display:none">
+    <h3>Trading account</h3>
+    <div class="grid">
+      <div><label>Options account</label><select id="accountSelect"></select></div>
+      <div><label>Connection</label><div class="row" style="min-height:44px"><span id="connectionStatus" class="status ok">Deriv connected</span></div></div>
+    </div>
+    <div class="check" style="margin-top:10px">
+      <input type="checkbox" id="allowReal">
+      <label for="allowReal">Allow real-money trading. Keep OFF while testing.</label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="secondary" id="refreshAccountsBtn">Refresh accounts</button>
+      <button class="secondary" id="logoutBtn">Disconnect Deriv</button>
+    </div>
+    <p id="accountInfo" class="note"></p>
+  </section>
+
+  <section class="card" id="tradeCard" style="display:none">
+    <h3>Hedge settings</h3>
+    <div style="margin-bottom:10px">
+      <label>Contract pair</label>
+      <select id="contractMode">
+        <option value="callput" selected>Higher / Lower (barrier-based)</option>
+        <option value="runs">Only Ups / Only Downs (tick-run)</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <label>Volatility index (scroll to see all)</label>
+      <select id="symbol" size="8">
+        <option value="R_10">Volatility 10 Index</option>
+        <option value="R_25">Volatility 25 Index</option>
+        <option value="R_50">Volatility 50 Index</option>
+        <option value="R_75">Volatility 75 Index</option>
+        <option value="R_100">Volatility 100 Index</option>
+        <option value="1HZ10V" selected>Volatility 10 (1s) Index</option>
+        <option value="1HZ25V">Volatility 25 (1s) Index</option>
+        <option value="1HZ50V">Volatility 50 (1s) Index</option>
+        <option value="1HZ75V">Volatility 75 (1s) Index</option>
+        <option value="1HZ100V">Volatility 100 (1s) Index</option>
+        <option value="__custom__">Other — type symbol code manually</option>
+      </select>
+      <input id="symbolCustom" placeholder="e.g. 1HZ150V" style="display:none;margin-top:8px">
+    </div>
+    <div class="grid">
+      <div><label>Stake per side</label><input id="stake" type="number" min="0.01" step="0.01" value="0.35"></div>
+      <div><label>Currency</label><input id="currency" value="USD"></div>
+      <div><label>Duration (ticks)</label><input id="duration" type="number" min="1" step="1" value="5"></div>
+      <div id="durationUnitField"><label>Duration unit</label><select id="durationUnit"><option value="t" selected>Ticks</option><option value="s">Seconds</option><option value="m">Minutes</option></select></div>
+      <div><label>Pause between pairs (sec)</label><input id="pause" type="number" min="0" step="0.1" value="0.5"></div>
+      <div id="higherBarrierField"><label>Higher barrier</label><input id="higherBarrier" value="+0.5"></div>
+      <div id="lowerBarrierField"><label>Lower barrier</label><input id="lowerBarrier" value="-0.5"></div>
+      <div><label>Maximum pairs (0 = unlimited)</label><input id="maxPairs" type="number" min="0" step="1" value="1"></div>
+    </div>
+    <p id="runsNote" class="note" style="display:none">Only Ups/Only Downs (RUNHIGH/RUNLOW) has no barrier and is always
+      priced in ticks — duration unit is locked to Ticks and the barrier
+      fields are hidden while this mode is selected. Deriv restricts the
+      allowed tick count for these contracts (commonly a small range like
+      2–10); if the duration you enter is out of range, the exact Deriv
+      error will show in the Activity log below.</p>
+    <div class="sep"></div>
+    <div class="row">
+      <button class="primary" id="hedgeOnceBtn">Hedge Once</button>
+      <button class="primary" id="continuousBtn">Continuous Hedge</button>
+      <button class="danger" id="stopBtn" disabled>Stop After Current</button>
+    </div>
+    <p class="note">Higher and Lower are separate Deriv orders sent as close together as possible. Exact same-tick execution is not guaranteed and hedging does not guarantee profit.</p>
+  </section>
+
+  <section class="card" id="sessionCard" style="display:none">
+    <h3>Session</h3>
+    <div class="metrics">
+      <div class="metric">Pairs completed<b id="pairsDone">0</b></div>
+      <div class="metric">Session P/L<b id="sessionPL">0.00</b></div>
+      <div class="metric">Higher contract<b id="higherId">—</b></div>
+      <div class="metric">Lower contract<b id="lowerId">—</b></div>
+    </div>
+  </section>
+
+  <section class="card"><h3>Activity</h3><pre id="log" class="log"></pre></section>
+</main>
+</div>
+
+<script>
+(() => {
+  const $=id=>document.getElementById(id);
+  const logEl=$("log");
+  const state={authenticated:false,api:null,running:false,stopRequested:false,pairs:0,pl:0,accounts:[]};
+  let installPrompt=null;
+
+  function log(msg){const t=new Date().toLocaleTimeString();logEl.textContent+=`[${t}] ${msg}\n`;logEl.scrollTop=logEl.scrollHeight;}
+  function money(v){const n=Number(v);return Number.isFinite(n)?n.toFixed(2):String(v??"—");}
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+  const SETTING_IDS=["contractMode","symbol","symbolCustom","stake","currency","duration","durationUnit","pause","higherBarrier","lowerBarrier","maxPairs"];
+  function saveSettings(){
+    const obj={};SETTING_IDS.forEach(id=>obj[id]=$(id).value);localStorage.setItem("dpHedgeSettings",JSON.stringify(obj));
+  }
+  function loadSettings(){
+    try{const obj=JSON.parse(localStorage.getItem("dpHedgeSettings")||"{}");Object.entries(obj).forEach(([id,v])=>{if($(id))$(id).value=v;});}catch{}
+    updateSymbolCustomVisibility();
+    updateContractModeVisibility();
+  }
+  function updateSymbolCustomVisibility(){
+    $("symbolCustom").style.display=$("symbol").value==="__custom__"?"block":"none";
+  }
+  // "Only Ups/Only Downs" (RUNHIGH/RUNLOW) has no barrier and is always
+  // ticks-based, unlike Higher/Lower (CALL/PUT) which needs both.
+  function updateContractModeVisibility(){
+    const isRuns=$("contractMode").value==="runs";
+    $("higherBarrierField").style.display=isRuns?"none":"block";
+    $("lowerBarrierField").style.display=isRuns?"none":"block";
+    $("runsNote").style.display=isRuns?"block":"none";
+    $("durationUnit").disabled=isRuns;
+    $("durationUnitField").style.opacity=isRuns?"0.5":"1";
+    if(isRuns)$("durationUnit").value="t";
+  }
+  $("symbol").addEventListener("change",updateSymbolCustomVisibility);
+  $("contractMode").addEventListener("change",updateContractModeVisibility);
+  SETTING_IDS.forEach(id=>$(id).addEventListener("change",saveSettings));
+
+  function onlineState(){$("offlineBanner").style.display=navigator.onLine?"none":"block";}
+  addEventListener("online",onlineState);addEventListener("offline",onlineState);onlineState();
+
+  addEventListener("beforeinstallprompt",e=>{e.preventDefault();installPrompt=e;$("installBtn").style.display="inline-block";});
+  $("installBtn").onclick=async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$("installBtn").style.display="none";};
+
+  async function apiFetch(url,options={}){
+    const r=await fetch(url,{credentials:"same-origin",...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});
+    let body=null;try{body=await r.json();}catch{}
+    if(!r.ok)throw new Error(body?.error||`Request failed (${r.status})`);
+    return body;
+  }
+
+  function accountType(a){return String(a?.account_type||a?.type||"").toLowerCase();}
+
+  async function loadAccounts(){
+    const body=await apiFetch("/api/accounts");
+    let accounts=[];
+    if(Array.isArray(body?.data))accounts=body.data;
+    else if(Array.isArray(body?.data?.accounts))accounts=body.data.accounts;
+    else if(body?.data?.account_id)accounts=[body.data];
+
+    accounts=accounts.filter(a=>a?.account_id);
+    state.accounts=accounts;
+    if(!accounts.length)throw new Error("No Deriv Options account found.");
+
+    const select=$("accountSelect");select.innerHTML="";
+    for(const a of accounts){
+      const opt=document.createElement("option");
+      const type=accountType(a)||"unknown";
+      const bal=a.balance!=null?` • ${money(a.balance)} ${a.currency||""}`:"";
+      opt.value=a.account_id;opt.dataset.type=type;opt.textContent=`${type.toUpperCase()} • ${a.account_id}${bal}`;
+      select.appendChild(opt);
+    }
+    const demoIndex=accounts.findIndex(a=>accountType(a)==="demo");
+    select.selectedIndex=demoIndex>=0?demoIndex:0;
+    updateAccountInfo();
+    log(`Loaded ${accounts.length} Options account(s). ${demoIndex>=0?"Demo selected by default.":"No demo account returned."}`);
+  }
+
+  function selectedAccount(){
+    const opt=$("accountSelect").options[$("accountSelect").selectedIndex];
+    return opt?{accountId:opt.value,type:opt.dataset.type||"unknown"}:null;
+  }
+
+  function updateAccountInfo(){
+    const a=selectedAccount();
+    if(!a)return;
+    const blocked=a.type==="real"&&!$("allowReal").checked;
+    $("accountInfo").textContent=blocked?"REAL account selected — trading blocked until enabled.":`${a.type.toUpperCase()} account selected.`;
+    updateButtons();
+  }
+  $("accountSelect").addEventListener("change",updateAccountInfo);
+  $("allowReal").addEventListener("change",updateAccountInfo);
+
+  class DerivWS{
+    constructor(){this.ws=null;this.nextId=1;this.pending=new Map();this.watchers=new Map();this.subIds=new Map();}
+    async connect(url){
+      await new Promise((resolve,reject)=>{
+        const ws=new WebSocket(url);
+        const timer=setTimeout(()=>{try{ws.close();}catch{}reject(new Error("WebSocket timed out."));},15000);
+        ws.onopen=()=>{clearTimeout(timer);this.ws=ws;ws.onmessage=e=>this._onMessage(e);ws.onclose=()=>{if(state.api===this)state.api=null;log("Trading WebSocket closed.");};resolve();};
+        ws.onerror=()=>{clearTimeout(timer);reject(new Error("Could not open trading WebSocket."));};
+      });
+    }
+    _onMessage(e){
+      let data;try{data=JSON.parse(e.data);}catch{return;}
+      if(data.req_id&&this.pending.has(data.req_id)){
+        const p=this.pending.get(data.req_id);clearTimeout(p.timer);this.pending.delete(data.req_id);
+        data.error?p.reject(new Error(`${data.error.code||"DerivError"}: ${data.error.message||"Request failed"}`)):p.resolve(data);
+      }
+      if(data.msg_type==="proposal_open_contract"&&data.proposal_open_contract){
+        const c=data.proposal_open_contract,key=String(c.contract_id),sid=data.subscription?.id;
+        if(sid)this.subIds.set(key,sid);
+        const w=this.watchers.get(key);
+        if(w&&c.is_sold){this.watchers.delete(key);w.resolve(c);const sub=this.subIds.get(key);this.subIds.delete(key);if(sub)this.request({forget:sub}).catch(()=>{});}
+      }
+    }
+    request(payload,timeoutMs=20000){
+      if(!this.ws||this.ws.readyState!==WebSocket.OPEN)return Promise.reject(new Error("Trading WebSocket is not connected."));
+      const reqId=this.nextId++;
+      return new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>{this.pending.delete(reqId);reject(new Error(`Timed out waiting for Deriv (${reqId}).`));},timeoutMs);
+        this.pending.set(reqId,{resolve,reject,timer});this.ws.send(JSON.stringify({...payload,req_id:reqId}));
+      });
+    }
+    async watch(contractId){
+      const key=String(contractId);
+      const wait=new Promise((resolve,reject)=>this.watchers.set(key,{resolve,reject}));
+      const first=await this.request({proposal_open_contract:1,contract_id:Number(contractId),subscribe:1});
+      const c=first.proposal_open_contract;
+      if(c?.is_sold&&this.watchers.has(key)){this.watchers.delete(key);return c;}
+      return wait;
+    }
+    close(){try{this.ws?.close();}catch{}this.ws=null;}
+  }
+
+  function resolveSymbol(){
+    const sel=$("symbol").value;
+    return sel==="__custom__"?$("symbolCustom").value.trim():sel;
+  }
+  // Barrier magnitude, sign auto-applied ("+" for Higher, "-" for Lower) so a
+  // typo'd or missing sign can't silently produce the wrong barrier or get
+  // blocked by validation — Higher/Lower always needs a signed offset, and
+  // this removes that whole class of user error.
+  function signedBarrier(rawValue,sign){
+    const magnitude=Math.abs(Number(String(rawValue).replace(/^[+-]/,"")));
+    if(!Number.isFinite(magnitude)||magnitude<=0)throw new Error(`Barrier must be a number greater than 0 (got "${rawValue}").`);
+    return `${sign}${magnitude}`;
+  }
+  // Only Ups/Only Downs (RUNHIGH/RUNLOW) has no barrier at all and is
+  // always ticks-based, unlike Higher/Lower (CALL/PUT) which needs both.
+  const CONTRACT_MODES={
+    callput:{higherType:"CALL",lowerType:"PUT",usesBarrier:true,forceTicks:false,higherLabel:"Higher",lowerLabel:"Lower"},
+    runs:{higherType:"RUNHIGH",lowerType:"RUNLOW",usesBarrier:false,forceTicks:true,higherLabel:"Only Ups",lowerLabel:"Only Downs"}
+  };
+  function getConfig(){
+    const mode=CONTRACT_MODES[$("contractMode").value];
+    const cfg={
+      mode,symbol:resolveSymbol(),currency:$("currency").value.trim().toUpperCase(),stake:Number($("stake").value),
+      duration:Number($("duration").value),durationUnit:mode.forceTicks?"t":$("durationUnit").value,
+      higherBarrier:mode.usesBarrier?signedBarrier($("higherBarrier").value.trim(),"+"):undefined,
+      lowerBarrier:mode.usesBarrier?signedBarrier($("lowerBarrier").value.trim(),"-"):undefined,
+      pause:Number($("pause").value),maxPairs:Number($("maxPairs").value)
+    };
+    if(!cfg.symbol)throw new Error("Symbol is required — pick one from the list or type a custom code.");
+    if(!(cfg.stake>0))throw new Error("Stake must be greater than 0.");
+    if(!(cfg.duration>=1&&Number.isInteger(cfg.duration)))throw new Error("Duration must be a whole number.");
+    if(!(cfg.pause>=0))throw new Error("Pause cannot be negative.");
+    if(!(cfg.maxPairs>=0&&Number.isInteger(cfg.maxPairs)))throw new Error("Maximum pairs must be 0 or positive.");
+    return cfg;
+  }
+
+  // barrier is omitted entirely from the request when undefined (JSON.stringify
+  // drops undefined properties), which is required for RUNHIGH/RUNLOW.
+  function proposal(cfg,type,barrier){return{proposal:1,amount:cfg.stake,basis:"stake",contract_type:type,currency:cfg.currency,duration:cfg.duration,duration_unit:cfg.durationUnit,underlying_symbol:cfg.symbol,barrier};}
+
+  async function openSocket(){
+    const a=selectedAccount();
+    if(!a)throw new Error("Select an Options account.");
+    if(a.type==="real"&&!$("allowReal").checked)throw new Error("Real-money trading is blocked.");
+    if(state.api?.ws?.readyState===WebSocket.OPEN)return state.api;
+
+    const otp=await apiFetch("/api/otp",{method:"POST",body:JSON.stringify({account_id:a.accountId})});
+    const api=new DerivWS();await api.connect(otp.url);state.api=api;
+    log(`Trading connection opened for ${a.type.toUpperCase()} ${a.accountId}.`);
+    return api;
+  }
+
+  async function emergencySell(api,id,side){
+    try{log(`Only ${side} filled. Attempting emergency sell...`);await api.request({sell:Number(id),price:0});log(`Emergency sell accepted for ${side}.`);}
+    catch(e){log(`WARNING: emergency sell failed for ${side}: ${e.message}`);}
+  }
+
+  async function hedgePair(){
+    const cfg=getConfig();saveSettings();const api=await openSocket();
+    const {mode}=cfg,hi=mode.higherLabel,lo=mode.lowerLabel;
+    const barrierInfo=mode.usesBarrier?`, barriers ${cfg.higherBarrier}/${cfg.lowerBarrier}`:" (no barrier)";
+    log(`Requesting ${hi} + ${lo}: ${cfg.symbol}, ${cfg.stake} each${barrierInfo}`);
+    const [hm,lm]=await Promise.all([api.request(proposal(cfg,mode.higherType,cfg.higherBarrier)),api.request(proposal(cfg,mode.lowerType,cfg.lowerBarrier))]);
+    const h=hm.proposal,l=lm.proposal;if(!h?.id||!l?.id)throw new Error("Both proposal IDs were not returned.");
+    const ha=Number(h.ask_price??cfg.stake),la=Number(l.ask_price??cfg.stake);
+    log(`Quotes ready. ${hi}=${money(ha)}, ${lo}=${money(la)}. Sending both buys...`);
+    const r=await Promise.allSettled([api.request({buy:h.id,price:ha}),api.request({buy:l.id,price:la})]);
+    const hok=r[0].status==="fulfilled",lok=r[1].status==="fulfilled";
+    const hid=hok?r[0].value.buy?.contract_id:null,lid=lok?r[1].value.buy?.contract_id:null;
+    if(!hok||!lok||!hid||!lid){
+      if(!hok)log(`${hi} failed: ${r[0].reason?.message||"unknown"}`);
+      if(!lok)log(`${lo} failed: ${r[1].reason?.message||"unknown"}`);
+      if(hid&&!lid)await emergencySell(api,hid,hi);
+      if(lid&&!hid)await emergencySell(api,lid,lo);
+      throw new Error("Hedge pair was not fully opened.");
+    }
+    $("higherId").textContent=hid;$("lowerId").textContent=lid;log(`HEDGE OPEN: ${hi}=${hid} | ${lo}=${lid}`);
+    const [hf,lf]=await Promise.all([api.watch(hid),api.watch(lid)]);
+    const hp=Number(hf.profit||0),lp=Number(lf.profit||0),pp=hp+lp;
+    state.pairs++;state.pl+=pp;$("pairsDone").textContent=state.pairs;$("sessionPL").textContent=money(state.pl);
+    log(`${hi} P/L ${money(hp)} | ${lo} P/L ${money(lp)} | Pair ${money(pp)} ${cfg.currency}`);
+  }
+
+  function updateButtons(){
+    const a=selectedAccount(),blocked=a?.type==="real"&&!$("allowReal").checked;
+    const ok=state.authenticated&&a&&!blocked&&!state.running;
+    $("hedgeOnceBtn").disabled=!ok;$("continuousBtn").disabled=!ok;$("stopBtn").disabled=!state.running;
+  }
+
+  $("refreshAccountsBtn").onclick=async()=>{try{await loadAccounts();updateButtons();}catch(e){log(`ACCOUNT ERROR: ${e.message}`);}};
+  $("logoutBtn").onclick=async()=>{state.stopRequested=true;state.api?.close();try{await apiFetch("/api/logout",{method:"POST",body:"{}"});}catch{}location.href="/";};
+
+  $("hedgeOnceBtn").onclick=async()=>{if(state.running)return;state.running=true;state.stopRequested=false;updateButtons();try{await hedgePair();}catch(e){log(`HEDGE ERROR: ${e.message}`);}finally{state.running=false;updateButtons();}};
+  $("continuousBtn").onclick=async()=>{
+    if(state.running)return;state.running=true;state.stopRequested=false;updateButtons();
+    try{
+      const cfg=getConfig(),start=state.pairs;
+      while(!state.stopRequested){
+        if(cfg.maxPairs>0&&state.pairs-start>=cfg.maxPairs)break;
+        await hedgePair();
+        if(state.stopRequested)break;
+        if(cfg.maxPairs>0&&state.pairs-start>=cfg.maxPairs)break;
+        await sleep(cfg.pause*1000);
+      }
+      log("Continuous hedge stopped.");
+    }catch(e){log(`CONTINUOUS HEDGE ERROR: ${e.message}`);}finally{state.running=false;updateButtons();}
+  };
+  $("stopBtn").onclick=()=>{state.stopRequested=true;$("stopBtn").disabled=true;log("Stop requested. It will stop after current pair.");};
+
+  async function boot(){
+    loadSettings();
+    const p=new URLSearchParams(location.search),err=p.get("auth_error");
+    if(err){$("authError").textContent=`Deriv connection error: ${err}`;$("authError").style.display="block";}
+    try{const s=await apiFetch("/api/session");state.authenticated=Boolean(s.authenticated);}catch{state.authenticated=false;}
+    if(state.authenticated){
+      $("loginCard").style.display="none";$("accountCard").style.display="block";$("tradeCard").style.display="block";$("sessionCard").style.display="block";
+      try{await loadAccounts();log("Connected with Deriv. Demo is preferred automatically.");}catch(e){log(`ACCOUNT ERROR: ${e.message}`);}
+    }else log("Tap Connect with Deriv to sign in securely.");
+    updateButtons();
+    if(p.has("connected")||p.has("auth_error"))history.replaceState({},"","/");
+  }
+
+  if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));
+  boot();
+})();
+</script>
+</body>
+</html>
