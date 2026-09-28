@@ -1,0 +1,27 @@
+NEW FEATURES
+
+1. Scrollable Volatility selector
+   - Fetches active symbols from Deriv using active_symbols.
+   - Keeps a fallback list if the fetch fails.
+   - Includes a Refresh Volatilities button.
+
+2. Two paired hedge modes
+
+   A) Higher + Lower
+      contract types: HIGHER + LOWER
+      barrier: +offset for Higher, -offset for Lower
+
+   B) Only Ups + Only Downs
+      contract types: RUNHIGH + RUNLOW
+      barrier: none
+
+3. The same stake, symbol, duration and currency are used for both contracts in a pair.
+
+4. Both proposal requests are made together and both buys are dispatched as close together as possible.
+
+UPLOAD TO GITHUB
+Replace:
+- public/index.html
+- public/service-worker.js
+
+Render should automatically redeploy after the commit.

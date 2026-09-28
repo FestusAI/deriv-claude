@@ -1,0 +1,25 @@
+V4 FIXES
+
+CONTINUOUS HEDGE
+- No maximum-pairs limit.
+- Continuous Hedge repeats until the user presses Stop.
+- Win/loss does not stop the loop.
+- API/configuration errors stop the loop to avoid repeated invalid requests.
+
+HIGHER / LOWER
+- Higher = CALL + positive relative barrier.
+- Lower  = PUT  + negative relative barrier.
+- Example offset 0.5:
+  CALL barrier "+0.5"
+  PUT  barrier "-0.5"
+- contracts_for is checked first to confirm the selected market advertises barrier CALL/PUT.
+
+ONLY UPS / ONLY DOWNS
+- RUNHIGH + RUNLOW.
+- No barrier.
+
+DEPLOY
+Replace:
+- public/index.html
+- public/service-worker.js
+Commit to main; Render should redeploy.

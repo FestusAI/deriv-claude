@@ -1,0 +1,17 @@
+BARRIER FIX
+
+Changes:
+1. Higher proposal contract type changed from CALL to HIGHER.
+2. Lower proposal contract type changed from PUT to LOWER.
+3. One positive offset field is used.
+4. Higher barrier is automatically +offset.
+5. Lower barrier is automatically -offset.
+6. UI shows the barriers that will be sent.
+
+Example:
+Offset barrier distance = 0.5
+Higher request barrier = +0.5
+Lower request barrier  = -0.5
+
+After uploading the corrected public/index.html and public/service-worker.js to GitHub,
+Render should auto-deploy the new commit.
