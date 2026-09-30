@@ -17,13 +17,14 @@
 .nav{display:grid;gap:5px}.nav button{justify-content:flex-start;background:transparent;color:#20242c;border-radius:8px;font-weight:800}.nav button.active,.nav button:hover{background:#f0f5ff;color:#0000cc}
 .workspace{min-width:0}.topbar{position:sticky;top:0;z-index:10;background:#111318;color:#fff;padding:14px 20px;box-shadow:0 1px 8px rgba(0,0,0,.18)}.topbar .brand{color:#fff}
 .toprow{display:flex;align-items:center;justify-content:space-between;gap:10px}.topActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.topActions .secondary{background:#fff;color:#111318}.topActions .primary{background:#ff444f;color:#fff}
 .install{display:none;background:#fff;color:#111318;padding:8px 11px;border-radius:8px;border:0;font-weight:800}
 .content{padding:18px;max-width:1180px;margin:0 auto}.card{background:#fff;border:1px solid #e1e4e9;border-radius:8px;padding:15px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .screen{display:none}.screen.active{display:block}.hero{background:linear-gradient(135deg,#111318 0%,#1b2d5e 55%,#0b7d59 100%);color:#fff;border:0;padding:22px}.hero h1{margin:0 0 8px;font-size:30px;line-height:1.12}.hero p{margin:0;color:rgba(255,255,255,.76);line-height:1.55;max-width:720px}
 .botGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.botCard{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;display:grid;gap:10px;min-height:168px}.botCard.featured{border-color:#ffb3b8;box-shadow:0 12px 26px rgba(255,68,79,.12)}
 .botHead{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.botTitle{font-size:16px;font-weight:900}.pill{display:inline-flex;border-radius:999px;background:#edf5ff;color:#155eef;font-size:11px;font-weight:900;padding:4px 8px;white-space:nowrap}.botDesc{font-size:13px;line-height:1.45;color:#5f6672;margin:0}.empty{padding:18px;border:1px dashed #ccd4df;border-radius:8px;color:#667085;background:#fff}
 @media(max-width:920px){.layout{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.nav{grid-template-columns:repeat(2,minmax(0,1fr))}.botGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:620px){.content{padding:12px}.botGrid{grid-template-columns:1fr}.hero h1{font-size:24px}.nav{grid-template-columns:1fr}}
+@media(max-width:620px){.content{padding:12px}.botGrid{grid-template-columns:1fr}.hero h1{font-size:24px}.nav{grid-template-columns:1fr}.toprow{align-items:flex-start}.topActions{justify-content:flex-end}.topActions .btn{padding:10px 12px}}
 h3{margin:0 0 12px;font-size:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:560px){.grid{grid-template-columns:1fr}}
 label{display:block;font-size:11px;font-weight:800;color:#5b616b;margin:0 0 5px}
 input,select,button,a.btn{font:inherit}input,select{width:100%;padding:11px 12px;border:1px solid #cfd3da;border-radius:10px;background:#fff;min-height:44px}
@@ -73,7 +74,8 @@ button,a.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:800;curso
   <div class="toprow">
     <div><div class="brand">DollarPrinting</div><div class="small">Free bots, hedge tools, and Deriv account access</div></div>
     <div class="topActions">
-      <a class="btn secondary" href="/admin.html">Admin</a>
+      <a class="btn secondary" href="https://t.deriv.link?t=X844XLJ4548M" target="_blank" rel="noopener">Sign up</a>
+      <a class="btn primary" href="/auth/login">Log in</a>
       <button id="installBtn" class="install">Install App</button>
     </div>
   </div>
@@ -97,7 +99,6 @@ button,a.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:800;curso
       <div class="row">
         <button class="secondary" type="button" data-open-view="freeBotsScreen">Open Free Bots</button>
         <button class="secondary" type="button" data-open-view="hedgeScreen">Open Hedge Bot</button>
-        <a class="btn secondary" href="/admin.html">Open Admin</a>
       </div>
       <p class="note">Real-money trading stays blocked by default inside the Hedge bot. Keep testing on demo until you deliberately enable real accounts.</p>
     </section>
@@ -110,7 +111,6 @@ button,a.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:800;curso
           <h3>Free bots</h3>
           <p class="note">Migrated from dollarprinting.site, with your Hedge bot installed as a built-in tool.</p>
         </div>
-        <a class="btn secondary" href="/admin.html">Manage bots</a>
       </div>
     </section>
     <div id="botGrid" class="botGrid">
@@ -214,9 +214,8 @@ button,a.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:800;curso
   <section class="screen" id="placeholderScreen">
     <section class="card">
       <h3>Coming next</h3>
-      <p class="note">This section is ready for bots or tools you add from the admin page. Use Free Bots to publish cards immediately, and use the Hedge Bot tab for the installed trading bot.</p>
+      <p class="note">This section is ready for bots or tools you publish. Use Free Bots for downloadable bot cards, and use the Hedge Bot tab for the installed trading bot.</p>
       <div class="row" style="margin-top:12px">
-        <a class="btn primary" href="/admin.html">Add a bot</a>
         <button class="secondary" type="button" data-open-view="freeBotsScreen">View Free Bots</button>
       </div>
     </section>
@@ -250,7 +249,7 @@ button,a.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:800;curso
       const body=await res.json();
       const bots=Array.isArray(body?.bots)?body.bots:[];
       if(!bots.length){
-        grid.innerHTML='<div class="empty">No bots are visible yet. Add one from Admin.</div>';
+        grid.innerHTML='<div class="empty">No bots are visible yet.</div>';
         return;
       }
       grid.innerHTML="";
@@ -284,7 +283,7 @@ button,a.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:800;curso
         }else{
           const note=document.createElement("span");
           note.className="note";
-          note.textContent="Catalog entry. Add a launch URL from Admin when ready.";
+          note.textContent="Catalog entry. A launch link or file will appear here when ready.";
           actions.appendChild(note);
         }
         grid.appendChild(card);
