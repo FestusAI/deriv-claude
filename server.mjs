@@ -21,12 +21,14 @@ if (!CLIENT_ID) {
 
 const app = express();
 app.disable("x-powered-by");
-app.use(express.json({ limit: "50kb" }));
+app.use(express.json({ limit: "8mb" }));
 
 const sessions = new Map();
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 const BOT_DATA_DIR = path.join(__dirname, "data");
 const BOT_DATA_FILE = path.join(BOT_DATA_DIR, "bots.json");
+const BOT_FILE_DIR = path.join(BOT_DATA_DIR, "files");
+const MAX_BOT_FILE_BYTES = 5 * 1024 * 1024;
 
 const DEFAULT_BOTS = [
   {
@@ -138,9 +140,19 @@ function slugify(value) {
     .slice(0, 80) || `bot-${Date.now()}`;
 }
 
-function sanitizeBot(raw = {}) {
+function cleanFileName(value) {
+  return String(value || "bot-file")
+    .replace(/[/\\?%*:|"<>]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120) || "bot-file";
+}
+
+function sanitizeBot(raw = {}, previous = {}) {
   const name = String(raw.name || "").trim().slice(0, 120);
   if (!name) throw new Error("Bot name is required.");
+  const launchUrl = String(raw.launchUrl || previous.launchUrl || "").trim().slice(0, 500);
+  const fileUrl = String(raw.fileUrl || previous.fileUrl || "").trim().slice(0, 500);
   return {
     id: String(raw.id || slugify(name)).trim().slice(0, 100),
     name,
@@ -148,8 +160,12 @@ function sanitizeBot(raw = {}) {
     badge: String(raw.badge || "Admin").trim().slice(0, 40),
     source: String(raw.source || "Admin").trim().slice(0, 80),
     description: String(raw.description || "Bot added from the admin page.").trim().slice(0, 500),
-    launchUrl: String(raw.launchUrl || "").trim().slice(0, 500),
-    launchType: raw.launchType === "hedge" ? "hedge" : (String(raw.launchUrl || "").trim() ? "link" : "catalog"),
+    launchUrl,
+    fileUrl,
+    fileName: String(raw.fileName || previous.fileName || "").trim().slice(0, 160),
+    fileSize: Number(raw.fileSize || previous.fileSize || 0) || 0,
+    fileType: String(raw.fileType || previous.fileType || "").trim().slice(0, 120),
+    launchType: raw.launchType === "hedge" ? "hedge" : (launchUrl || fileUrl ? "link" : "catalog"),
     enabled: raw.enabled !== false,
     featured: raw.featured === true
   };
@@ -167,6 +183,25 @@ async function readBots() {
 async function writeBots(bots) {
   await fs.mkdir(BOT_DATA_DIR, { recursive: true });
   await fs.writeFile(BOT_DATA_FILE, JSON.stringify({ bots }, null, 2), "utf8");
+}
+
+async function saveBotFile(botId, file = {}) {
+  const rawData = String(file.data || "");
+  const originalName = cleanFileName(file.name || `${botId}.bot`);
+  if (!rawData) return null;
+  const buffer = Buffer.from(rawData, "base64");
+  if (!buffer.length) throw new Error("Uploaded file is empty.");
+  if (buffer.length > MAX_BOT_FILE_BYTES) throw new Error("Bot file is too large. Maximum size is 5 MB.");
+  await fs.mkdir(BOT_FILE_DIR, { recursive: true });
+  const storedName = `${slugify(botId)}-${Date.now()}-${originalName}`;
+  const target = path.join(BOT_FILE_DIR, storedName);
+  await fs.writeFile(target, buffer);
+  return {
+    fileUrl: `/bot-files/${encodeURIComponent(storedName)}`,
+    fileName: originalName,
+    fileSize: buffer.length,
+    fileType: String(file.type || "application/octet-stream").slice(0, 120)
+  };
 }
 
 function requireAdmin(req, res, next) {
@@ -341,9 +376,16 @@ app.get("/api/admin/bots", requireAdmin, async (req, res) => {
 
 app.post("/api/admin/bots", requireAdmin, async (req, res) => {
   try {
-    const bot = sanitizeBot(req.body?.bot || req.body || {});
     const bots = await readBots();
-    const existing = bots.findIndex(row => row.id === bot.id);
+    const rawBot = req.body?.bot || req.body || {};
+    const requestedId = String(rawBot.id || slugify(rawBot.name || "")).trim();
+    const existing = bots.findIndex(row => row.id === requestedId);
+    const previous = existing >= 0 ? bots[existing] : {};
+    let bot = sanitizeBot(rawBot, previous);
+    const uploaded = await saveBotFile(bot.id, req.body?.file);
+    if (uploaded) {
+      bot = sanitizeBot({ ...bot, ...uploaded, launchType: "link" }, bot);
+    }
     if (existing >= 0) bots[existing] = bot;
     else bots.push(bot);
     await writeBots(bots);
@@ -361,6 +403,17 @@ app.delete("/api/admin/bots/:id", requireAdmin, async (req, res) => {
 });
 
 app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
+app.get("/bot-files/:name", async (req, res) => {
+  const name = cleanFileName(req.params.name);
+  const target = path.join(BOT_FILE_DIR, name);
+  if (!target.startsWith(BOT_FILE_DIR)) return res.status(400).send("Invalid file.");
+  try {
+    await fs.access(target);
+    res.download(target, name.replace(/^[a-z0-9-]+-\d+-/i, ""));
+  } catch {
+    res.status(404).send("File not found.");
+  }
+});
 
 app.use(express.static(path.join(__dirname, "public"), { etag: true, maxAge: "1h" }));
 app.use((req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));

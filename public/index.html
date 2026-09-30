@@ -269,13 +269,17 @@ button,a.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:800;curso
           open.textContent="Open Hedge Bot";
           open.onclick=()=>showView("hedgeScreen");
           actions.appendChild(open);
-        }else if(bot.launchUrl){
+        }else if(bot.launchUrl || bot.fileUrl){
           const link=document.createElement("a");
           link.className="btn primary";
-          link.href=bot.launchUrl;
-          link.target="_blank";
-          link.rel="noopener";
-          link.textContent="Open Bot";
+          link.href=bot.launchUrl || bot.fileUrl;
+          if(bot.launchUrl){
+            link.target="_blank";
+            link.rel="noopener";
+          }else{
+            link.setAttribute("download","");
+          }
+          link.textContent=bot.fileUrl && !bot.launchUrl ? "Download File" : "Open Bot";
           actions.appendChild(link);
         }else{
           const note=document.createElement("span");
