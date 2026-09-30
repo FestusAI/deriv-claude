@@ -1,0 +1,115 @@
+{
+  "bots": [
+    {
+      "id": "hedge-v7",
+      "name": "DollarPrinting Hedge V7",
+      "category": "Free",
+      "badge": "Installed",
+      "source": "New site",
+      "description": "Higher + Lower paired contracts with demo-first Deriv OAuth, barrier checking, one-shot hedging, and continuous hedge mode.",
+      "launchType": "hedge",
+      "enabled": true,
+      "featured": true
+    },
+    {
+      "id": "under-mostly",
+      "name": "Under mostly",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    },
+    {
+      "id": "over-mostly",
+      "name": "Over mostly",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    },
+    {
+      "id": "alexspeedbot-expro2-2",
+      "name": "ALEXSPEEDBOT_ EXPRO2 (2)",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    },
+    {
+      "id": "over2recover3",
+      "name": "0ver2recover3",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    },
+    {
+      "id": "rise-and-fall",
+      "name": "Rise and fall",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    },
+    {
+      "id": "under7by-rec-under6",
+      "name": "Under7by rec under6",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    },
+    {
+      "id": "lasvagas-original",
+      "name": "lasvagas original",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    },
+    {
+      "id": "over-under-bot-v4",
+      "name": "over_under_bot_v4",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    },
+    {
+      "id": "over-under-bot-v5",
+      "name": "over_under_bot_v5",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    },
+    {
+      "id": "lasvegas-9",
+      "name": "lasvegas (9)",
+      "category": "Free",
+      "badge": "Migrated",
+      "source": "dollarprinting.site",
+      "description": "Free bot migrated from the old DollarPrinting Free Bots list.",
+      "launchType": "catalog",
+      "enabled": true
+    }
+  ]
+}

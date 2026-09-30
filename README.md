@@ -67,6 +67,26 @@ Users visit your free Render URL and:
 
 Users never need to give you a PAT token or password.
 
+## Admin bot catalog
+
+The public site now has a Free Bots catalog seeded with the visible bots from
+`dollarprinting.site`, plus the built-in DollarPrinting Hedge V7 bot.
+
+Admin link:
+
+`https://YOUR-ACTUAL-RENDER-URL.onrender.com/admin`
+
+Before using Admin, set this Render environment variable:
+
+`ADMIN_PASSWORD`
+
+Use that password on the Admin page to add, update, hide, or delete bot cards.
+Cards added in Admin appear in the public Free Bots section.
+
+Important: this lightweight Render version stores admin-added bot cards in
+`data/bots.json` on the running service. For a permanent multi-admin setup, move
+the bot catalog to a database or another persistent storage service.
+
 ## Mobile
 
 Because the site is served over HTTPS, Android users can open it in Chrome and

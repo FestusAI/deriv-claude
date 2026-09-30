@@ -1,7 +1,7 @@
 {
-  "name": "DollarPrinting Deriv Hedge",
-  "short_name": "DP Hedge",
-  "description": "Higher + Lower hedge interface for Deriv Options.",
+  "name": "DollarPrinting",
+  "short_name": "DollarPrinting",
+  "description": "Free Deriv bot catalog and Higher + Lower hedge interface.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

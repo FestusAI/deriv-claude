@@ -1,6 +1,7 @@
 import express from "express";
 import crypto from "crypto";
 import path from "path";
+import fs from "fs/promises";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -8,6 +9,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT || 3000);
 const CLIENT_ID = String(process.env.DERIV_CLIENT_ID || "").trim();
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "").trim();
 const BASE_URL = String(process.env.APP_BASE_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`).replace(/\/+$/, "");
 const REDIRECT_URI = `${BASE_URL}/callback`;
 const IS_HTTPS = BASE_URL.startsWith("https://");
@@ -23,6 +25,32 @@ app.use(express.json({ limit: "50kb" }));
 
 const sessions = new Map();
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
+const BOT_DATA_DIR = path.join(__dirname, "data");
+const BOT_DATA_FILE = path.join(BOT_DATA_DIR, "bots.json");
+
+const DEFAULT_BOTS = [
+  {
+    id: "hedge-v7",
+    name: "DollarPrinting Hedge V7",
+    category: "Free",
+    badge: "Installed",
+    source: "New site",
+    description: "Higher + Lower paired contracts with demo-first Deriv OAuth, barrier checking, one-shot hedging, and continuous hedge mode.",
+    launchType: "hedge",
+    enabled: true,
+    featured: true
+  },
+  { id: "under-mostly", name: "Under mostly", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true },
+  { id: "over-mostly", name: "Over mostly", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true },
+  { id: "alexspeedbot-expro2-2", name: "ALEXSPEEDBOT_ EXPRO2 (2)", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true },
+  { id: "over2recover3", name: "0ver2recover3", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true },
+  { id: "rise-and-fall", name: "Rise and fall", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true },
+  { id: "under7by-rec-under6", name: "Under7by rec under6", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true },
+  { id: "lasvagas-original", name: "lasvagas original", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true },
+  { id: "over-under-bot-v4", name: "over_under_bot_v4", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true },
+  { id: "over-under-bot-v5", name: "over_under_bot_v5", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true },
+  { id: "lasvegas-9", name: "lasvegas (9)", category: "Free", badge: "Migrated", source: "dollarprinting.site", description: "Free bot migrated from the old DollarPrinting Free Bots list.", launchType: "catalog", enabled: true }
+];
 
 function parseCookies(req) {
   const raw = req.headers.cookie || "";
@@ -100,6 +128,52 @@ function oauthError(body, fallback) {
          body?.error ||
          body?.errors?.map(e => e.message || e.code).filter(Boolean).join("; ") ||
          fallback;
+}
+
+function slugify(value) {
+  return String(value || "bot")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || `bot-${Date.now()}`;
+}
+
+function sanitizeBot(raw = {}) {
+  const name = String(raw.name || "").trim().slice(0, 120);
+  if (!name) throw new Error("Bot name is required.");
+  return {
+    id: String(raw.id || slugify(name)).trim().slice(0, 100),
+    name,
+    category: String(raw.category || "Free").trim().slice(0, 50),
+    badge: String(raw.badge || "Admin").trim().slice(0, 40),
+    source: String(raw.source || "Admin").trim().slice(0, 80),
+    description: String(raw.description || "Bot added from the admin page.").trim().slice(0, 500),
+    launchUrl: String(raw.launchUrl || "").trim().slice(0, 500),
+    launchType: raw.launchType === "hedge" ? "hedge" : (String(raw.launchUrl || "").trim() ? "link" : "catalog"),
+    enabled: raw.enabled !== false,
+    featured: raw.featured === true
+  };
+}
+
+async function readBots() {
+  try {
+    const raw = await fs.readFile(BOT_DATA_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed?.bots)) return parsed.bots.map(sanitizeBot);
+  } catch {}
+  return DEFAULT_BOTS;
+}
+
+async function writeBots(bots) {
+  await fs.mkdir(BOT_DATA_DIR, { recursive: true });
+  await fs.writeFile(BOT_DATA_FILE, JSON.stringify({ bots }, null, 2), "utf8");
+}
+
+function requireAdmin(req, res, next) {
+  if (!ADMIN_PASSWORD) return res.status(503).json({ error: "Admin page is not enabled. Set ADMIN_PASSWORD in Render environment variables." });
+  const supplied = String(req.headers["x-admin-password"] || req.body?.password || "").trim();
+  if (supplied !== ADMIN_PASSWORD) return res.status(401).json({ error: "Invalid admin password." });
+  next();
 }
 
 function beginOAuth(req, res, registration = false) {
@@ -255,6 +329,38 @@ app.post("/api/logout", (req, res) => {
 app.get("/api/config", (req, res) => {
   res.json({ redirect_uri: REDIRECT_URI, oauth_client_id: CLIENT_ID });
 });
+
+app.get("/api/bots", async (req, res) => {
+  const bots = await readBots();
+  res.json({ bots: bots.filter(bot => bot.enabled !== false) });
+});
+
+app.get("/api/admin/bots", requireAdmin, async (req, res) => {
+  res.json({ bots: await readBots() });
+});
+
+app.post("/api/admin/bots", requireAdmin, async (req, res) => {
+  try {
+    const bot = sanitizeBot(req.body?.bot || req.body || {});
+    const bots = await readBots();
+    const existing = bots.findIndex(row => row.id === bot.id);
+    if (existing >= 0) bots[existing] = bot;
+    else bots.push(bot);
+    await writeBots(bots);
+    res.json({ ok: true, bot, bots });
+  } catch (err) {
+    res.status(400).json({ error: err.message || "Could not save bot." });
+  }
+});
+
+app.delete("/api/admin/bots/:id", requireAdmin, async (req, res) => {
+  const id = String(req.params.id || "");
+  const bots = (await readBots()).filter(bot => bot.id !== id);
+  await writeBots(bots);
+  res.json({ ok: true, bots });
+});
+
+app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 
 app.use(express.static(path.join(__dirname, "public"), { etag: true, maxAge: "1h" }));
 app.use((req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));

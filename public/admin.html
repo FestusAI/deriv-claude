@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111318">
+<title>DollarPrinting Admin</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#17191f;background:#f4f6f8}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#f4f6f8}.admin{max-width:1080px;margin:0 auto;padding:24px}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:20px}.brand{font-size:24px;font-weight:900}.muted{color:#667085;font-size:13px;line-height:1.5}
+.grid{display:grid;grid-template-columns:380px 1fr;gap:16px}@media(max-width:840px){.grid{grid-template-columns:1fr}.admin{padding:14px}}
+.card{background:#fff;border:1px solid #e2e6ed;border-radius:8px;padding:16px;box-shadow:0 10px 24px rgba(20,24,32,.05)}h1,h2,h3{margin:0}h2{font-size:16px;margin-bottom:12px}
+label{display:block;font-size:12px;font-weight:800;color:#596170;margin:12px 0 6px}input,textarea,select{width:100%;min-height:44px;border:1px solid #ccd3dd;border-radius:8px;padding:10px 12px;font:inherit;background:#fff}
+textarea{min-height:110px;resize:vertical}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}button,a.btn{border:0;border-radius:8px;min-height:44px;padding:10px 14px;font-weight:900;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.primary{background:#ff444f;color:#fff}.secondary{background:#e9edf2;color:#1f2430}.danger{background:#111318;color:#fff}.bot{border:1px solid #e4e8ef;border-radius:8px;padding:12px;margin-bottom:10px;background:#fbfcfd}
+.bot strong{display:block}.pill{display:inline-flex;border-radius:999px;background:#edf5ff;color:#155eef;font-size:11px;font-weight:900;padding:4px 8px;margin:8px 6px 0 0}.error{display:none;background:#fff0f0;color:#b42318;border:1px solid #ffd0d0;border-radius:8px;padding:10px;margin-bottom:12px}.ok{display:none;background:#ecfdf3;color:#067647;border:1px solid #abefc6;border-radius:8px;padding:10px;margin-bottom:12px}
+</style>
+</head>
+<body>
+<main class="admin">
+  <div class="top">
+    <div>
+      <h1 class="brand">DollarPrinting Admin</h1>
+      <div class="muted">Manage the bot catalog that appears on the public site.</div>
+    </div>
+    <a class="btn secondary" href="/">View site</a>
+  </div>
+
+  <div id="ok" class="ok"></div>
+  <div id="error" class="error"></div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Add or update bot</h2>
+      <label for="password">Admin password</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="Set ADMIN_PASSWORD in Render">
+
+      <label for="name">Bot name</label>
+      <input id="name" placeholder="Example: Volatility Scalper">
+
+      <label for="description">Description</label>
+      <textarea id="description" placeholder="Short public description shown on the bot card."></textarea>
+
+      <label for="category">Category</label>
+      <select id="category">
+        <option>Free</option>
+        <option>Normal</option>
+        <option>Premium</option>
+        <option>Hedge</option>
+      </select>
+
+      <label for="badge">Badge</label>
+      <input id="badge" value="Admin">
+
+      <label for="launchUrl">Optional launch or download URL</label>
+      <input id="launchUrl" placeholder="https://...">
+
+      <label for="enabled">Visibility</label>
+      <select id="enabled">
+        <option value="true">Visible</option>
+        <option value="false">Hidden</option>
+      </select>
+
+      <div class="row" style="margin-top:14px">
+        <button class="primary" id="saveBtn">Save bot</button>
+        <button class="secondary" id="clearBtn" type="button">Clear</button>
+      </div>
+      <p class="muted">Use the same bot name to update an existing bot. The Hedge bot is built into the public site.</p>
+    </section>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <h2>Current bots</h2>
+        <button class="secondary" id="loadBtn">Refresh</button>
+      </div>
+      <div id="bots"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let selectedId = "";
+
+  function show(id,msg){
+    $("ok").style.display="none";$("error").style.display="none";
+    const el=$(id);el.textContent=msg;el.style.display="block";
+  }
+  function password(){return $("password").value.trim();}
+  function slug(value){return value.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,80);}
+  function headers(){return {"Content-Type":"application/json","x-admin-password":password()};}
+  async function api(url,options={}){
+    const res=await fetch(url,{...options,headers:{...headers(),...(options.headers||{})}});
+    const body=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(body.error||`Request failed (${res.status})`);
+    return body;
+  }
+
+  function fill(bot){
+    selectedId=bot.id;
+    $("name").value=bot.name||"";
+    $("description").value=bot.description||"";
+    $("category").value=bot.category||"Free";
+    $("badge").value=bot.badge||"Admin";
+    $("launchUrl").value=bot.launchUrl||"";
+    $("enabled").value=bot.enabled===false?"false":"true";
+    scrollTo({top:0,behavior:"smooth"});
+  }
+
+  async function load(){
+    try{
+      const body=await api("/api/admin/bots");
+      $("bots").innerHTML="";
+      for(const bot of body.bots){
+        const row=document.createElement("div");
+        row.className="bot";
+        row.innerHTML=`<strong></strong><div class="muted"></div><span class="pill"></span><span class="pill"></span><div class="row" style="margin-top:10px"><button class="secondary" type="button">Edit</button><button class="danger" type="button">Delete</button></div>`;
+        row.querySelector("strong").textContent=bot.name;
+        row.querySelector(".muted").textContent=bot.description||"";
+        const pills=row.querySelectorAll(".pill");
+        pills[0].textContent=bot.category||"Free";
+        pills[1].textContent=bot.enabled===false?"Hidden":(bot.badge||"Visible");
+        const buttons=row.querySelectorAll("button");
+        buttons[0].onclick=()=>fill(bot);
+        buttons[1].onclick=async()=>{
+          if(!confirm(`Delete ${bot.name}?`))return;
+          await api(`/api/admin/bots/${encodeURIComponent(bot.id)}`,{method:"DELETE"});
+          show("ok","Bot deleted.");
+          load();
+        };
+        $("bots").appendChild(row);
+      }
+    }catch(err){show("error",err.message);}
+  }
+
+  $("saveBtn").onclick=async()=>{
+    try{
+      const name=$("name").value.trim();
+      const bot={
+        id:selectedId||slug(name),
+        name,
+        description:$("description").value.trim(),
+        category:$("category").value,
+        badge:$("badge").value.trim(),
+        launchUrl:$("launchUrl").value.trim(),
+        enabled:$("enabled").value==="true"
+      };
+      await api("/api/admin/bots",{method:"POST",body:JSON.stringify({bot})});
+      show("ok","Bot saved.");
+      selectedId="";
+      $("name").value="";$("description").value="";$("launchUrl").value="";$("badge").value="Admin";$("enabled").value="true";
+      load();
+    }catch(err){show("error",err.message);}
+  };
+  $("clearBtn").onclick=()=>{selectedId="";$("name").value="";$("description").value="";$("launchUrl").value="";$("badge").value="Admin";$("enabled").value="true";};
+  $("loadBtn").onclick=load;
+})();
+</script>
+</body>
+</html>
